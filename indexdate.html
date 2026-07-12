@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Você quer ir em um date comigo?</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -11,9 +14,7 @@
             box-sizing: border-box;
         }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica',
-                'Arial', sans-serif;
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
         }
@@ -21,25 +22,104 @@
             height: 100%;
             width: 100%;
         }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 94, 168, 0.4);
+            border-radius: 10px;
+        }
     </style>
 </head>
 <body>
     <div id="root"></div>
-    
-    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/react.min.js"></script>
-    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/react-dom.min.js"></script>
+
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
 
     <script type="text/babel">
-        const { useState, useRef } = React;
+        const { useState, useRef, useEffect } = React;
+
+        // ⬇️ COLE AQUI O SEU ENDPOINT DO FORMSPREE (ex: https://formspree.io/f/abcdwxyz)
+        const FORMSPREE_ENDPOINT = 'https://formspree.io/f/mlgqrovw';
+
+        const ACCENT_GRADIENT = 'linear-gradient(135deg, #ff5ea8 0%, #8b5cf6 100%)';
+        const ACCENT = '#ff5ea8';
+        const ACCENT_SOFT = 'rgba(255, 94, 168, 0.15)';
+        const TEXT_MUTED = '#b8b4d0';
 
         const DateProposal = () => {
             const [currentPage, setCurrentPage] = useState(0);
-            const [language, setLanguage] = useState('pt');
+            const [language, setLanguage] = useState('en');
             const [selectedFood, setSelectedFood] = useState(null);
             const [selectedDates, setSelectedDates] = useState([]);
             const [selectedTime, setSelectedTime] = useState(null);
+            const [noButtonPos, setNoButtonPos] = useState(null);
+            const [dodgeCount, setDodgeCount] = useState(0);
+            const [sending, setSending] = useState(false);
+            const [sendError, setSendError] = useState(false);
             const noButtonRef = useRef(null);
+            const yesButtonRef = useRef(null);
+            const buttonsRowRef = useRef(null);
+
+            const dodgeNoButton = () => {
+                const container = buttonsRowRef.current;
+                const noBtn = noButtonRef.current;
+                const yesBtn = yesButtonRef.current;
+                if (!container || !noBtn) return;
+
+                const containerRect = container.getBoundingClientRect();
+                const btnRect = noBtn.getBoundingClientRect();
+                const yesRect = yesBtn ? yesBtn.getBoundingClientRect() : null;
+
+                const maxX = Math.max(containerRect.width - btnRect.width, 0);
+                const maxY = Math.max(containerRect.height - btnRect.height, 0);
+
+                // Yes button box relative to the container, with padding to keep clear
+                const pad = 12;
+                let yesBox = null;
+                if (yesRect) {
+                    yesBox = {
+                        left: yesRect.left - containerRect.left - pad,
+                        right: yesRect.right - containerRect.left + pad,
+                        top: yesRect.top - containerRect.top - pad,
+                        bottom: yesRect.bottom - containerRect.top + pad
+                    };
+                }
+
+                const overlapsYes = (x, y) => {
+                    if (!yesBox) return false;
+                    return !(x + btnRect.width < yesBox.left ||
+                             x > yesBox.right ||
+                             y + btnRect.height < yesBox.top ||
+                             y > yesBox.bottom);
+                };
+
+                let newX = 0, newY = 0;
+                for (let i = 0; i < 40; i++) {
+                    newX = Math.random() * maxX;
+                    newY = Math.random() * maxY;
+                    if (!overlapsYes(newX, newY)) break;
+                }
+
+                setNoButtonPos({ x: newX, y: newY });
+                setDodgeCount(prev => prev + 1);
+            };
+
+            useEffect(() => {
+                const container = buttonsRowRef.current;
+                const noBtn = noButtonRef.current;
+                if (!container || !noBtn || noButtonPos) return;
+
+                const containerRect = container.getBoundingClientRect();
+                const btnRect = noBtn.getBoundingClientRect();
+
+                setNoButtonPos({
+                    x: containerRect.width * 0.56,
+                    y: containerRect.height / 2 - btnRect.height / 2
+                });
+            }, []);
 
             const translations = {
                 pt: {
@@ -114,7 +194,7 @@
                 const today = new Date();
                 const year = today.getFullYear();
                 const month = today.getMonth();
-                
+
                 for (let i = 1; i <= 30; i++) {
                     const date = new Date(year, month, today.getDate() + i);
                     dates.push(date);
@@ -143,38 +223,87 @@
                 return selectedDates.includes(dateString);
             };
 
+            const submitDate = async () => {
+                setSendError(false);
+                setSending(true);
+                try {
+                    const res = await fetch(FORMSPREE_ENDPOINT, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                        body: JSON.stringify({
+                            comida: t.cuisines[selectedFood],
+                            dias: selectedDates.join(', '),
+                            horario: selectedTime,
+                            _subject: '💕 Alguém aceitou o date!'
+                        })
+                    });
+                    if (!res.ok) throw new Error('failed');
+                    setCurrentPage(3);
+                } catch (err) {
+                    setSendError(true);
+                } finally {
+                    setSending(false);
+                }
+            };
+
+            const yesScale = 1 + dodgeCount * 0.18;
+
             return (
-                <div style={{ 
+                <div style={{
                     minHeight: '100vh',
-                    background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+                    background: 'radial-gradient(circle at 20% 20%, #2d1b4e 0%, #16132b 45%, #0b0a17 100%)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-                    padding: '20px'
+                    padding: '20px',
+                    position: 'relative',
+                    overflow: 'hidden'
                 }}>
+                    <div style={{
+                        position: 'absolute',
+                        top: '-15%',
+                        left: '-10%',
+                        width: '500px',
+                        height: '500px',
+                        borderRadius: '50%',
+                        background: 'radial-gradient(circle, rgba(255,94,168,0.25) 0%, transparent 70%)',
+                        filter: 'blur(40px)'
+                    }} />
+                    <div style={{
+                        position: 'absolute',
+                        bottom: '-15%',
+                        right: '-10%',
+                        width: '500px',
+                        height: '500px',
+                        borderRadius: '50%',
+                        background: 'radial-gradient(circle, rgba(139,92,246,0.25) 0%, transparent 70%)',
+                        filter: 'blur(40px)'
+                    }} />
+
                     {/* Language Selector */}
                     <div style={{
                         position: 'absolute',
-                        top: '20px',
-                        right: '20px',
+                        top: '24px',
+                        right: '24px',
                         display: 'flex',
-                        gap: '10px'
+                        gap: '8px',
+                        zIndex: 2
                     }}>
                         {['pt', 'en', 'ja'].map(lang => (
                             <button
                                 key={lang}
                                 onClick={() => setLanguage(lang)}
                                 style={{
-                                    padding: '8px 14px',
-                                    border: '1px solid #e94560',
-                                    borderRadius: '3px',
-                                    background: language === lang ? '#e94560' : 'transparent',
-                                    color: language === lang ? 'white' : '#e94560',
+                                    padding: '8px 16px',
+                                    border: language === lang ? 'none' : '1px solid rgba(255,255,255,0.15)',
+                                    borderRadius: '999px',
+                                    background: language === lang ? ACCENT_GRADIENT : 'rgba(255,255,255,0.05)',
+                                    color: language === lang ? 'white' : TEXT_MUTED,
                                     cursor: 'pointer',
-                                    fontWeight: language === lang ? 'bold' : 'normal',
+                                    fontWeight: language === lang ? '600' : '500',
                                     fontSize: '12px',
-                                    transition: 'all 0.3s ease'
+                                    transition: 'all 0.25s ease',
+                                    backdropFilter: 'blur(10px)'
                                 }}
                             >
                                 {lang.toUpperCase()}
@@ -183,64 +312,88 @@
                     </div>
 
                     <div style={{
-                        background: '#0f3460',
-                        borderRadius: '4px',
-                        padding: '60px 40px',
+                        background: 'rgba(255,255,255,0.06)',
+                        backdropFilter: 'blur(24px)',
+                        border: '1px solid rgba(255,255,255,0.12)',
+                        borderRadius: '28px',
+                        padding: '56px 44px',
                         maxWidth: '600px',
                         width: '100%',
-                        boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-                        textAlign: 'center'
+                        boxShadow: '0 25px 70px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.03) inset',
+                        textAlign: 'center',
+                        position: 'relative',
+                        zIndex: 1
                     }}>
                         {currentPage === 0 && (
                             <div>
                                 <h1 style={{
-                                    fontSize: '38px',
-                                    marginBottom: '50px',
-                                    color: '#e94560',
-                                    fontWeight: '600',
-                                    letterSpacing: '-0.5px'
+                                    fontSize: '36px',
+                                    marginBottom: '48px',
+                                    background: ACCENT_GRADIENT,
+                                    WebkitBackgroundClip: 'text',
+                                    WebkitTextFillColor: 'transparent',
+                                    backgroundClip: 'text',
+                                    fontWeight: '700',
+                                    letterSpacing: '-0.5px',
+                                    lineHeight: '1.3'
                                 }}>
                                     {t.welcome}
                                 </h1>
-                                
-                                <div style={{ 
-                                    display: 'flex', 
-                                    gap: '20px', 
-                                    justifyContent: 'center',
-                                    flexWrap: 'wrap'
-                                }}>
+
+                                <div
+                                    ref={buttonsRowRef}
+                                    style={{
+                                        position: 'relative',
+                                        width: '100%',
+                                        height: '180px'
+                                    }}
+                                >
                                     <button
+                                        ref={yesButtonRef}
                                         onClick={() => setCurrentPage(1)}
                                         style={{
-                                            padding: '14px 50px',
-                                            fontSize: '16px',
-                                            fontWeight: '600',
+                                            position: 'absolute',
+                                            left: '38%',
+                                            top: '50%',
+                                            transform: `translate(-50%, -50%) scale(${yesScale})`,
+                                            transformOrigin: 'center',
+                                            padding: '16px 54px',
+                                            fontSize: '17px',
+                                            fontWeight: '700',
                                             border: 'none',
-                                            borderRadius: '3px',
-                                            background: '#e94560',
+                                            borderRadius: '999px',
+                                            background: ACCENT_GRADIENT,
                                             color: 'white',
                                             cursor: 'pointer',
-                                            transition: 'all 0.3s ease'
+                                            boxShadow: '0 10px 30px rgba(255, 94, 168, 0.35)',
+                                            transition: 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                                            zIndex: 1
                                         }}
-                                        onMouseEnter={(e) => e.target.style.background = '#d63447'}
-                                        onMouseLeave={(e) => e.target.style.background = '#e94560'}
                                     >
                                         {t.yes}
                                     </button>
 
                                     <button
                                         ref={noButtonRef}
+                                        onMouseEnter={dodgeNoButton}
+                                        onClick={dodgeNoButton}
                                         style={{
-                                            padding: '14px 50px',
+                                            position: 'absolute',
+                                            left: noButtonPos ? `${noButtonPos.x}px` : '60%',
+                                            top: noButtonPos ? `${noButtonPos.y}px` : '50%',
+                                            padding: '15px 46px',
                                             fontSize: '16px',
                                             fontWeight: '600',
-                                            border: '2px solid #e94560',
-                                            borderRadius: '3px',
-                                            background: 'transparent',
-                                            color: '#e94560',
-                                            cursor: 'not-allowed',
-                                            transition: 'all 0.3s ease',
-                                            opacity: '0.7'
+                                            border: '1.5px solid rgba(255,255,255,0.25)',
+                                            borderRadius: '999px',
+                                            background: 'rgba(255,255,255,0.04)',
+                                            color: TEXT_MUTED,
+                                            cursor: 'pointer',
+                                            transform: `rotate(${dodgeCount * 23}deg) skew(${Math.min(dodgeCount * 6, 40)}deg, ${Math.min(dodgeCount * 3, 20)}deg) scale(${Math.max(1 - dodgeCount * 0.12, 0.15)})`,
+                                            transformOrigin: 'center',
+                                            opacity: Math.max(1 - dodgeCount * 0.08, 0.3),
+                                            transition: 'left 0.25s ease, top 0.25s ease, transform 0.3s ease, opacity 0.3s ease',
+                                            zIndex: 2
                                         }}
                                     >
                                         {t.no}
@@ -252,10 +405,10 @@
                         {currentPage === 1 && (
                             <div>
                                 <h2 style={{
-                                    fontSize: '30px',
-                                    marginBottom: '35px',
-                                    color: '#e94560',
-                                    fontWeight: '600',
+                                    fontSize: '28px',
+                                    marginBottom: '32px',
+                                    color: 'white',
+                                    fontWeight: '700',
                                     letterSpacing: '-0.5px'
                                 }}>
                                     {t.foodQuestion}
@@ -265,7 +418,7 @@
                                     display: 'grid',
                                     gridTemplateColumns: 'repeat(2, 1fr)',
                                     gap: '12px',
-                                    marginBottom: '30px'
+                                    marginBottom: '32px'
                                 }}>
                                     {Object.entries(t.cuisines).map(([key, value]) => (
                                         <button
@@ -273,23 +426,23 @@
                                             onClick={() => setSelectedFood(key)}
                                             style={{
                                                 padding: '18px 16px',
-                                                border: selectedFood === key ? '2px solid #e94560' : '1px solid #536878',
-                                                borderRadius: '3px',
-                                                background: selectedFood === key ? 'rgba(233, 69, 96, 0.15)' : 'transparent',
-                                                color: selectedFood === key ? '#e94560' : '#c1c5c9',
+                                                border: selectedFood === key ? `1.5px solid ${ACCENT}` : '1px solid rgba(255,255,255,0.12)',
+                                                borderRadius: '16px',
+                                                background: selectedFood === key ? ACCENT_SOFT : 'rgba(255,255,255,0.03)',
+                                                color: selectedFood === key ? 'white' : TEXT_MUTED,
                                                 cursor: 'pointer',
                                                 fontSize: '15px',
                                                 fontWeight: '500',
                                                 transition: 'all 0.2s ease'
                                             }}
                                             onMouseEnter={(e) => {
-                                                e.target.style.borderColor = '#e94560';
-                                                e.target.style.color = '#e94560';
+                                                e.target.style.borderColor = ACCENT;
+                                                e.target.style.color = 'white';
                                             }}
                                             onMouseLeave={(e) => {
                                                 if (selectedFood !== key) {
-                                                    e.target.style.borderColor = '#536878';
-                                                    e.target.style.color = '#c1c5c9';
+                                                    e.target.style.borderColor = 'rgba(255,255,255,0.12)';
+                                                    e.target.style.color = TEXT_MUTED;
                                                 }
                                             }}
                                         >
@@ -302,22 +455,16 @@
                                     onClick={() => selectedFood && setCurrentPage(2)}
                                     disabled={!selectedFood}
                                     style={{
-                                        padding: '12px 50px',
+                                        padding: '14px 54px',
                                         fontSize: '16px',
-                                        fontWeight: '600',
+                                        fontWeight: '700',
                                         border: 'none',
-                                        borderRadius: '3px',
-                                        background: selectedFood ? '#e94560' : '#536878',
-                                        color: 'white',
+                                        borderRadius: '999px',
+                                        background: selectedFood ? ACCENT_GRADIENT : 'rgba(255,255,255,0.08)',
+                                        color: selectedFood ? 'white' : TEXT_MUTED,
                                         cursor: selectedFood ? 'pointer' : 'not-allowed',
                                         transition: 'all 0.3s ease',
-                                        opacity: selectedFood ? 1 : 0.5
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        if (selectedFood) e.target.style.background = '#d63447';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        if (selectedFood) e.target.style.background = '#e94560';
+                                        boxShadow: selectedFood ? '0 10px 30px rgba(255, 94, 168, 0.35)' : 'none'
                                     }}
                                 >
                                     {t.yes}
@@ -328,10 +475,10 @@
                         {currentPage === 2 && (
                             <div>
                                 <h2 style={{
-                                    fontSize: '30px',
-                                    marginBottom: '30px',
-                                    color: '#e94560',
-                                    fontWeight: '600',
+                                    fontSize: '28px',
+                                    marginBottom: '28px',
+                                    color: 'white',
+                                    fontWeight: '700',
                                     letterSpacing: '-0.5px'
                                 }}>
                                     {t.dateQuestion}
@@ -341,10 +488,10 @@
                                     display: 'grid',
                                     gridTemplateColumns: 'repeat(4, 1fr)',
                                     gap: '10px',
-                                    marginBottom: '30px',
+                                    marginBottom: '28px',
                                     maxHeight: '300px',
                                     overflowY: 'auto',
-                                    padding: '10px'
+                                    padding: '4px'
                                 }}>
                                     {getNextMonth().map((date, idx) => {
                                         const dateString = date.toISOString().split('T')[0];
@@ -355,10 +502,10 @@
                                                 onClick={() => toggleDateSelection(dateString)}
                                                 style={{
                                                     padding: '12px 8px',
-                                                    border: isSelected ? '2px solid #e94560' : '1px solid #536878',
-                                                    borderRadius: '3px',
-                                                    background: isSelected ? '#e94560' : 'transparent',
-                                                    color: isSelected ? 'white' : '#c1c5c9',
+                                                    border: isSelected ? `1.5px solid ${ACCENT}` : '1px solid rgba(255,255,255,0.12)',
+                                                    borderRadius: '12px',
+                                                    background: isSelected ? ACCENT_GRADIENT : 'rgba(255,255,255,0.03)',
+                                                    color: isSelected ? 'white' : TEXT_MUTED,
                                                     cursor: 'pointer',
                                                     fontSize: '13px',
                                                     fontWeight: '500',
@@ -367,14 +514,14 @@
                                                 }}
                                                 onMouseEnter={(e) => {
                                                     if (!isSelected) {
-                                                        e.target.style.borderColor = '#e94560';
-                                                        e.target.style.color = '#e94560';
+                                                        e.target.style.borderColor = ACCENT;
+                                                        e.target.style.color = 'white';
                                                     }
                                                 }}
                                                 onMouseLeave={(e) => {
                                                     if (!isSelected) {
-                                                        e.target.style.borderColor = '#536878';
-                                                        e.target.style.color = '#c1c5c9';
+                                                        e.target.style.borderColor = 'rgba(255,255,255,0.12)';
+                                                        e.target.style.color = TEXT_MUTED;
                                                     }
                                                 }}
                                             >
@@ -384,11 +531,11 @@
                                     })}
                                 </div>
 
-                                <div style={{ marginBottom: '30px' }}>
+                                <div style={{ marginBottom: '28px', textAlign: 'left' }}>
                                     <label style={{
                                         display: 'block',
-                                        marginBottom: '12px',
-                                        color: '#e94560',
+                                        marginBottom: '10px',
+                                        color: 'white',
                                         fontSize: '14px',
                                         fontWeight: '600'
                                     }}>
@@ -399,19 +546,19 @@
                                         onChange={(e) => setSelectedTime(e.target.value)}
                                         style={{
                                             width: '100%',
-                                            padding: '12px',
-                                            borderRadius: '3px',
-                                            border: '1px solid #536878',
+                                            padding: '14px',
+                                            borderRadius: '12px',
+                                            border: '1px solid rgba(255,255,255,0.15)',
                                             fontSize: '15px',
                                             cursor: 'pointer',
-                                            background: '#1a1a2e',
-                                            color: '#e94560',
+                                            background: 'rgba(255,255,255,0.05)',
+                                            color: 'white',
                                             fontWeight: '500'
                                         }}
                                     >
-                                        <option value="">Select...</option>
+                                        <option value="" style={{ background: '#16132b' }}>Select...</option>
                                         {t.times.map((time) => (
-                                            <option key={time} value={time} style={{ background: '#1a1a2e', color: '#e94560' }}>
+                                            <option key={time} value={time} style={{ background: '#16132b', color: 'white' }}>
                                                 {time}
                                             </option>
                                         ))}
@@ -419,55 +566,64 @@
                                 </div>
 
                                 <button
-                                    onClick={() => selectedDates.length > 0 && selectedTime && setCurrentPage(3)}
-                                    disabled={selectedDates.length === 0 || !selectedTime}
+                                    onClick={() => selectedDates.length > 0 && selectedTime && !sending && submitDate()}
+                                    disabled={selectedDates.length === 0 || !selectedTime || sending}
                                     style={{
-                                        padding: '12px 50px',
+                                        padding: '14px 54px',
                                         fontSize: '16px',
-                                        fontWeight: '600',
+                                        fontWeight: '700',
                                         border: 'none',
-                                        borderRadius: '3px',
-                                        background: (selectedDates.length > 0 && selectedTime) ? '#e94560' : '#536878',
-                                        color: 'white',
-                                        cursor: (selectedDates.length > 0 && selectedTime) ? 'pointer' : 'not-allowed',
+                                        borderRadius: '999px',
+                                        background: (selectedDates.length > 0 && selectedTime) ? ACCENT_GRADIENT : 'rgba(255,255,255,0.08)',
+                                        color: (selectedDates.length > 0 && selectedTime) ? 'white' : TEXT_MUTED,
+                                        cursor: (selectedDates.length > 0 && selectedTime && !sending) ? 'pointer' : 'not-allowed',
                                         transition: 'all 0.3s ease',
-                                        opacity: (selectedDates.length > 0 && selectedTime) ? 1 : 0.5
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        if (selectedDates.length > 0 && selectedTime) e.target.style.background = '#d63447';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        if (selectedDates.length > 0 && selectedTime) e.target.style.background = '#e94560';
+                                        boxShadow: (selectedDates.length > 0 && selectedTime) ? '0 10px 30px rgba(255, 94, 168, 0.35)' : 'none',
+                                        opacity: sending ? 0.7 : 1
                                     }}
                                 >
-                                    {t.yes}
+                                    {sending ? '...' : t.yes}
                                 </button>
+
+                                {sendError && (
+                                    <p style={{
+                                        marginTop: '16px',
+                                        color: '#ff8b8b',
+                                        fontSize: '13px',
+                                        fontWeight: '500'
+                                    }}>
+                                        Ops, não consegui enviar. Verifique o endpoint do Formspree e tente de novo.
+                                    </p>
+                                )}
                             </div>
                         )}
 
                         {currentPage === 3 && (
                             <div>
                                 <h1 style={{
-                                    fontSize: '34px',
+                                    fontSize: '32px',
                                     marginBottom: '20px',
-                                    color: '#e94560',
-                                    fontWeight: '600',
+                                    background: ACCENT_GRADIENT,
+                                    WebkitBackgroundClip: 'text',
+                                    WebkitTextFillColor: 'transparent',
+                                    backgroundClip: 'text',
+                                    fontWeight: '700',
                                     letterSpacing: '-0.5px'
                                 }}>
                                     ✨ {t.success}
                                 </h1>
                                 <div style={{
-                                    background: 'rgba(233, 69, 96, 0.1)',
-                                    padding: '25px',
-                                    borderRadius: '3px',
+                                    background: 'rgba(255,255,255,0.05)',
+                                    padding: '24px',
+                                    borderRadius: '18px',
                                     marginTop: '25px',
-                                    color: '#e94560',
-                                    border: '1px solid rgba(233, 69, 96, 0.3)'
+                                    color: 'white',
+                                    border: '1px solid rgba(255,255,255,0.12)'
                                 }}>
                                     <p style={{ fontSize: '16px', margin: '10px 0', fontWeight: '500' }}>
                                         🍽️ <strong>{t.cuisines[selectedFood]}</strong>
                                     </p>
-                                    <p style={{ fontSize: '14px', margin: '10px 0', color: '#c1c5c9' }}>
+                                    <p style={{ fontSize: '14px', margin: '10px 0', color: TEXT_MUTED }}>
                                         {selectedDates.length === 1 ? selectedDates[0] : `${selectedDates.length} dates`}
                                     </p>
                                     <p style={{ fontSize: '16px', margin: '10px 0', fontWeight: '500' }}>
