@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Você quer ir em um date comigo?</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica',
+                'Arial', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        html, body, #root {
+            height: 100%;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/react.min.js"></script>
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/react-dom.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+
+    <script type="text/babel">
+        const { useState, useRef } = React;
+
+        const DateProposal = () => {
+            const [currentPage, setCurrentPage] = useState(0);
+            const [language, setLanguage] = useState('pt');
+            const [selectedFood, setSelectedFood] = useState(null);
+            const [selectedDates, setSelectedDates] = useState([]);
+            const [selectedTime, setSelectedTime] = useState(null);
+            const noButtonRef = useRef(null);
+
+            const translations = {
+                pt: {
+                    welcome: "Você quer ir em um date comigo?",
+                    yes: "Sim!",
+                    no: "Não",
+                    foodQuestion: "O que você gostaria de comer?",
+                    cuisines: {
+                        sushi: "🍣 Sushi",
+                        pizza: "🍕 Pizza",
+                        korean: "🥘 Coreana",
+                        italian: "🍝 Italiana",
+                        japanese: "🍲 Japonesa",
+                        french: "🥖 Francesa",
+                        mexican: "🌮 Mexicana",
+                        thai: "🍜 Tailandesa"
+                    },
+                    dateQuestion: "Que dias você está disponível?",
+                    selectTime: "Escolha o horário",
+                    times: ["11:00", "12:00", "13:00", "14:00", "18:00", "19:00", "20:00", "21:00"],
+                    success: "Perfeito! Vejo você em breve! 💕",
+                    language: "Idioma"
+                },
+                en: {
+                    welcome: "Will you go on a date with me?",
+                    yes: "Yes!",
+                    no: "No",
+                    foodQuestion: "What would you like to eat?",
+                    cuisines: {
+                        sushi: "🍣 Sushi",
+                        pizza: "🍕 Pizza",
+                        korean: "🥘 Korean",
+                        italian: "🍝 Italian",
+                        japanese: "🍲 Japanese",
+                        french: "🥖 French",
+                        mexican: "🌮 Mexican",
+                        thai: "🍜 Thai"
+                    },
+                    dateQuestion: "Which days work for you?",
+                    selectTime: "Choose a time",
+                    times: ["11:00", "12:00", "13:00", "14:00", "18:00", "19:00", "20:00", "21:00"],
+                    success: "Perfect! See you soon! 💕",
+                    language: "Language"
+                },
+                ja: {
+                    welcome: "デートしませんか？",
+                    yes: "はい！",
+                    no: "いいえ",
+                    foodQuestion: "何を食べたいですか？",
+                    cuisines: {
+                        sushi: "🍣 寿司",
+                        pizza: "🍕 ピザ",
+                        korean: "🥘 韓国料理",
+                        italian: "🍝 イタリアン",
+                        japanese: "🍲 和食",
+                        french: "🥖 フランス料理",
+                        mexican: "🌮 メキシコ料理",
+                        thai: "🍜 タイ料理"
+                    },
+                    dateQuestion: "都合のいい日付は？",
+                    selectTime: "時間を選択",
+                    times: ["11:00", "12:00", "13:00", "14:00", "18:00", "19:00", "20:00", "21:00"],
+                    success: "完璧です！近々会いましょう！💕",
+                    language: "言語"
+                }
+            };
+
+            const t = translations[language];
+
+            const getNextMonth = () => {
+                const dates = [];
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = today.getMonth();
+                
+                for (let i = 1; i <= 30; i++) {
+                    const date = new Date(year, month, today.getDate() + i);
+                    dates.push(date);
+                }
+                return dates;
+            };
+
+            const toggleDateSelection = (dateString) => {
+                setSelectedDates(prev => {
+                    if (prev.includes(dateString)) {
+                        return prev.filter(d => d !== dateString);
+                    } else {
+                        return [...prev, dateString];
+                    }
+                });
+            };
+
+            const formatDateDisplay = (date) => {
+                return date.toLocaleDateString(language === 'ja' ? 'ja-JP' : language === 'pt' ? 'pt-BR' : 'en-US', {
+                    weekday: 'short',
+                    day: 'numeric'
+                });
+            };
+
+            const isDateSelected = (dateString) => {
+                return selectedDates.includes(dateString);
+            };
+
+            return (
+                <div style={{ 
+                    minHeight: '100vh',
+                    background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+                    padding: '20px'
+                }}>
+                    {/* Language Selector */}
+                    <div style={{
+                        position: 'absolute',
+                        top: '20px',
+                        right: '20px',
+                        display: 'flex',
+                        gap: '10px'
+                    }}>
+                        {['pt', 'en', 'ja'].map(lang => (
+                            <button
+                                key={lang}
+                                onClick={() => setLanguage(lang)}
+                                style={{
+                                    padding: '8px 14px',
+                                    border: '1px solid #e94560',
+                                    borderRadius: '3px',
+                                    background: language === lang ? '#e94560' : 'transparent',
+                                    color: language === lang ? 'white' : '#e94560',
+                                    cursor: 'pointer',
+                                    fontWeight: language === lang ? 'bold' : 'normal',
+                                    fontSize: '12px',
+                                    transition: 'all 0.3s ease'
+                                }}
+                            >
+                                {lang.toUpperCase()}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div style={{
+                        background: '#0f3460',
+                        borderRadius: '4px',
+                        padding: '60px 40px',
+                        maxWidth: '600px',
+                        width: '100%',
+                        boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+                        textAlign: 'center'
+                    }}>
+                        {currentPage === 0 && (
+                            <div>
+                                <h1 style={{
+                                    fontSize: '38px',
+                                    marginBottom: '50px',
+                                    color: '#e94560',
+                                    fontWeight: '600',
+                                    letterSpacing: '-0.5px'
+                                }}>
+                                    {t.welcome}
+                                </h1>
+                                
+                                <div style={{ 
+                                    display: 'flex', 
+                                    gap: '20px', 
+                                    justifyContent: 'center',
+                                    flexWrap: 'wrap'
+                                }}>
+                                    <button
+                                        onClick={() => setCurrentPage(1)}
+                                        style={{
+                                            padding: '14px 50px',
+                                            fontSize: '16px',
+                                            fontWeight: '600',
+                                            border: 'none',
+                                            borderRadius: '3px',
+                                            background: '#e94560',
+                                            color: 'white',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.3s ease'
+                                        }}
+                                        onMouseEnter={(e) => e.target.style.background = '#d63447'}
+                                        onMouseLeave={(e) => e.target.style.background = '#e94560'}
+                                    >
+                                        {t.yes}
+                                    </button>
+
+                                    <button
+                                        ref={noButtonRef}
+                                        style={{
+                                            padding: '14px 50px',
+                                            fontSize: '16px',
+                                            fontWeight: '600',
+                                            border: '2px solid #e94560',
+                                            borderRadius: '3px',
+                                            background: 'transparent',
+                                            color: '#e94560',
+                                            cursor: 'not-allowed',
+                                            transition: 'all 0.3s ease',
+                                            opacity: '0.7'
+                                        }}
+                                    >
+                                        {t.no}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {currentPage === 1 && (
+                            <div>
+                                <h2 style={{
+                                    fontSize: '30px',
+                                    marginBottom: '35px',
+                                    color: '#e94560',
+                                    fontWeight: '600',
+                                    letterSpacing: '-0.5px'
+                                }}>
+                                    {t.foodQuestion}
+                                </h2>
+
+                                <div style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(2, 1fr)',
+                                    gap: '12px',
+                                    marginBottom: '30px'
+                                }}>
+                                    {Object.entries(t.cuisines).map(([key, value]) => (
+                                        <button
+                                            key={key}
+                                            onClick={() => setSelectedFood(key)}
+                                            style={{
+                                                padding: '18px 16px',
+                                                border: selectedFood === key ? '2px solid #e94560' : '1px solid #536878',
+                                                borderRadius: '3px',
+                                                background: selectedFood === key ? 'rgba(233, 69, 96, 0.15)' : 'transparent',
+                                                color: selectedFood === key ? '#e94560' : '#c1c5c9',
+                                                cursor: 'pointer',
+                                                fontSize: '15px',
+                                                fontWeight: '500',
+                                                transition: 'all 0.2s ease'
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.target.style.borderColor = '#e94560';
+                                                e.target.style.color = '#e94560';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                if (selectedFood !== key) {
+                                                    e.target.style.borderColor = '#536878';
+                                                    e.target.style.color = '#c1c5c9';
+                                                }
+                                            }}
+                                        >
+                                            {value}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <button
+                                    onClick={() => selectedFood && setCurrentPage(2)}
+                                    disabled={!selectedFood}
+                                    style={{
+                                        padding: '12px 50px',
+                                        fontSize: '16px',
+                                        fontWeight: '600',
+                                        border: 'none',
+                                        borderRadius: '3px',
+                                        background: selectedFood ? '#e94560' : '#536878',
+                                        color: 'white',
+                                        cursor: selectedFood ? 'pointer' : 'not-allowed',
+                                        transition: 'all 0.3s ease',
+                                        opacity: selectedFood ? 1 : 0.5
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        if (selectedFood) e.target.style.background = '#d63447';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        if (selectedFood) e.target.style.background = '#e94560';
+                                    }}
+                                >
+                                    {t.yes}
+                                </button>
+                            </div>
+                        )}
+
+                        {currentPage === 2 && (
+                            <div>
+                                <h2 style={{
+                                    fontSize: '30px',
+                                    marginBottom: '30px',
+                                    color: '#e94560',
+                                    fontWeight: '600',
+                                    letterSpacing: '-0.5px'
+                                }}>
+                                    {t.dateQuestion}
+                                </h2>
+
+                                <div style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(4, 1fr)',
+                                    gap: '10px',
+                                    marginBottom: '30px',
+                                    maxHeight: '300px',
+                                    overflowY: 'auto',
+                                    padding: '10px'
+                                }}>
+                                    {getNextMonth().map((date, idx) => {
+                                        const dateString = date.toISOString().split('T')[0];
+                                        const isSelected = isDateSelected(dateString);
+                                        return (
+                                            <button
+                                                key={idx}
+                                                onClick={() => toggleDateSelection(dateString)}
+                                                style={{
+                                                    padding: '12px 8px',
+                                                    border: isSelected ? '2px solid #e94560' : '1px solid #536878',
+                                                    borderRadius: '3px',
+                                                    background: isSelected ? '#e94560' : 'transparent',
+                                                    color: isSelected ? 'white' : '#c1c5c9',
+                                                    cursor: 'pointer',
+                                                    fontSize: '13px',
+                                                    fontWeight: '500',
+                                                    transition: 'all 0.2s ease',
+                                                    textAlign: 'center'
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    if (!isSelected) {
+                                                        e.target.style.borderColor = '#e94560';
+                                                        e.target.style.color = '#e94560';
+                                                    }
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    if (!isSelected) {
+                                                        e.target.style.borderColor = '#536878';
+                                                        e.target.style.color = '#c1c5c9';
+                                                    }
+                                                }}
+                                            >
+                                                {formatDateDisplay(date)}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                <div style={{ marginBottom: '30px' }}>
+                                    <label style={{
+                                        display: 'block',
+                                        marginBottom: '12px',
+                                        color: '#e94560',
+                                        fontSize: '14px',
+                                        fontWeight: '600'
+                                    }}>
+                                        {t.selectTime}
+                                    </label>
+                                    <select
+                                        value={selectedTime || ''}
+                                        onChange={(e) => setSelectedTime(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px',
+                                            borderRadius: '3px',
+                                            border: '1px solid #536878',
+                                            fontSize: '15px',
+                                            cursor: 'pointer',
+                                            background: '#1a1a2e',
+                                            color: '#e94560',
+                                            fontWeight: '500'
+                                        }}
+                                    >
+                                        <option value="">Select...</option>
+                                        {t.times.map((time) => (
+                                            <option key={time} value={time} style={{ background: '#1a1a2e', color: '#e94560' }}>
+                                                {time}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <button
+                                    onClick={() => selectedDates.length > 0 && selectedTime && setCurrentPage(3)}
+                                    disabled={selectedDates.length === 0 || !selectedTime}
+                                    style={{
+                                        padding: '12px 50px',
+                                        fontSize: '16px',
+                                        fontWeight: '600',
+                                        border: 'none',
+                                        borderRadius: '3px',
+                                        background: (selectedDates.length > 0 && selectedTime) ? '#e94560' : '#536878',
+                                        color: 'white',
+                                        cursor: (selectedDates.length > 0 && selectedTime) ? 'pointer' : 'not-allowed',
+                                        transition: 'all 0.3s ease',
+                                        opacity: (selectedDates.length > 0 && selectedTime) ? 1 : 0.5
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        if (selectedDates.length > 0 && selectedTime) e.target.style.background = '#d63447';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        if (selectedDates.length > 0 && selectedTime) e.target.style.background = '#e94560';
+                                    }}
+                                >
+                                    {t.yes}
+                                </button>
+                            </div>
+                        )}
+
+                        {currentPage === 3 && (
+                            <div>
+                                <h1 style={{
+                                    fontSize: '34px',
+                                    marginBottom: '20px',
+                                    color: '#e94560',
+                                    fontWeight: '600',
+                                    letterSpacing: '-0.5px'
+                                }}>
+                                    ✨ {t.success}
+                                </h1>
+                                <div style={{
+                                    background: 'rgba(233, 69, 96, 0.1)',
+                                    padding: '25px',
+                                    borderRadius: '3px',
+                                    marginTop: '25px',
+                                    color: '#e94560',
+                                    border: '1px solid rgba(233, 69, 96, 0.3)'
+                                }}>
+                                    <p style={{ fontSize: '16px', margin: '10px 0', fontWeight: '500' }}>
+                                        🍽️ <strong>{t.cuisines[selectedFood]}</strong>
+                                    </p>
+                                    <p style={{ fontSize: '14px', margin: '10px 0', color: '#c1c5c9' }}>
+                                        {selectedDates.length === 1 ? selectedDates[0] : `${selectedDates.length} dates`}
+                                    </p>
+                                    <p style={{ fontSize: '16px', margin: '10px 0', fontWeight: '500' }}>
+                                        🕐 {selectedTime}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<DateProposal />, document.getElementById('root'));
+    </script>
+</body>
+</html>
