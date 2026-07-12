@@ -53,7 +53,7 @@
             const [currentPage, setCurrentPage] = useState(0);
             const [language, setLanguage] = useState('en');
             const [selectedFood, setSelectedFood] = useState(null);
-            const [selectedDates, setSelectedDates] = useState([]);
+            const [selectedDate, setSelectedDate] = useState(null);
             const [selectedTime, setSelectedTime] = useState(null);
             const [noButtonPos, setNoButtonPos] = useState(null);
             const [dodgeCount, setDodgeCount] = useState(0);
@@ -225,13 +225,7 @@
             };
 
             const toggleDateSelection = (dateString) => {
-                setSelectedDates(prev => {
-                    if (prev.includes(dateString)) {
-                        return prev.filter(d => d !== dateString);
-                    } else {
-                        return [...prev, dateString];
-                    }
-                });
+                setSelectedDate(prev => prev === dateString ? null : dateString);
             };
 
             const formatDateDisplay = (date) => {
@@ -245,7 +239,7 @@
             };
 
             const isDateSelected = (dateString) => {
-                return selectedDates.includes(dateString);
+                return selectedDate === dateString;
             };
 
             const submitDate = async () => {
@@ -257,7 +251,7 @@
                         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
                         body: JSON.stringify({
                             comida: t.cuisines[selectedFood],
-                            dias: selectedDates.join(', '),
+                            dia: selectedDate,
                             horario: selectedTime,
                             _subject: '💕 Alguém aceitou o date!'
                         })
@@ -591,19 +585,19 @@
                                 </div>
 
                                 <button
-                                    onClick={() => selectedDates.length > 0 && selectedTime && !sending && submitDate()}
-                                    disabled={selectedDates.length === 0 || !selectedTime || sending}
+                                    onClick={() => selectedDate && selectedTime && !sending && submitDate()}
+                                    disabled={!selectedDate || !selectedTime || sending}
                                     style={{
                                         padding: '14px 54px',
                                         fontSize: '16px',
                                         fontWeight: '700',
                                         border: 'none',
                                         borderRadius: '999px',
-                                        background: (selectedDates.length > 0 && selectedTime) ? ACCENT_GRADIENT : 'rgba(255,255,255,0.08)',
-                                        color: (selectedDates.length > 0 && selectedTime) ? 'white' : TEXT_MUTED,
-                                        cursor: (selectedDates.length > 0 && selectedTime && !sending) ? 'pointer' : 'not-allowed',
+                                        background: (selectedDate && selectedTime) ? ACCENT_GRADIENT : 'rgba(255,255,255,0.08)',
+                                        color: (selectedDate && selectedTime) ? 'white' : TEXT_MUTED,
+                                        cursor: (selectedDate && selectedTime && !sending) ? 'pointer' : 'not-allowed',
                                         transition: 'all 0.3s ease',
-                                        boxShadow: (selectedDates.length > 0 && selectedTime) ? '0 10px 30px rgba(255, 94, 168, 0.35)' : 'none',
+                                        boxShadow: (selectedDate && selectedTime) ? '0 10px 30px rgba(255, 94, 168, 0.35)' : 'none',
                                         opacity: sending ? 0.7 : 1
                                     }}
                                 >
@@ -649,7 +643,7 @@
                                         🍽️ <strong>{t.cuisines[selectedFood]}</strong>
                                     </p>
                                     <p style={{ fontSize: '14px', margin: '10px 0', color: TEXT_MUTED }}>
-                                        {selectedDates.length === 1 ? selectedDates[0] : `${selectedDates.length} dates`}
+                                        📅 {selectedDate}
                                     </p>
                                     <p style={{ fontSize: '16px', margin: '10px 0', fontWeight: '500' }}>
                                         🕐 {selectedTime}
