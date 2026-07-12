@@ -235,10 +235,13 @@
             };
 
             const formatDateDisplay = (date) => {
-                return date.toLocaleDateString(language === 'ja' ? 'ja-JP' : language === 'pt' ? 'pt-BR' : 'en-US', {
-                    weekday: 'short',
-                    day: 'numeric'
-                });
+                const locale = language === 'ja' ? 'ja-JP' : language === 'pt' ? 'pt-BR' : 'en-US';
+                const day = date.getDate();
+                const weekday = date.toLocaleDateString(locale, { weekday: 'short' });
+                if (language === 'ja') {
+                    return `${day}日(${weekday})`;
+                }
+                return `${day} ${weekday}`;
             };
 
             const isDateSelected = (dateString) => {
