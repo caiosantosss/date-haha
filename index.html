@@ -110,16 +110,37 @@
             useEffect(() => {
                 const container = buttonsRowRef.current;
                 const noBtn = noButtonRef.current;
-                if (!container || !noBtn || noButtonPos) return;
+                const yesBtn = yesButtonRef.current;
+                if (!container || !noBtn || !yesBtn || noButtonPos) return;
 
                 const containerRect = container.getBoundingClientRect();
                 const btnRect = noBtn.getBoundingClientRect();
+                const yesRect = yesBtn.getBoundingClientRect();
 
-                const maxX = Math.max(containerRect.width - btnRect.width, 0);
-                setNoButtonPos({
-                    x: Math.min(containerRect.width * 0.56, maxX),
-                    y: containerRect.height / 2 - btnRect.height / 2
-                });
+                const gap = 16;
+                const yesRight = yesRect.right - containerRect.left;
+                const yesLeft = yesRect.left - containerRect.left;
+                const yesBottom = yesRect.bottom - containerRect.top;
+
+                if (yesRight + gap + btnRect.width <= containerRect.width) {
+                    // Cabe à direita do "Sim"
+                    setNoButtonPos({
+                        x: yesRight + gap,
+                        y: containerRect.height / 2 - btnRect.height / 2
+                    });
+                } else if (yesLeft - gap - btnRect.width >= 0) {
+                    // Cabe à esquerda do "Sim"
+                    setNoButtonPos({
+                        x: yesLeft - gap - btnRect.width,
+                        y: containerRect.height / 2 - btnRect.height / 2
+                    });
+                } else {
+                    // Não cabe ao lado: coloca embaixo
+                    setNoButtonPos({
+                        x: Math.max(containerRect.width / 2 - btnRect.width / 2, 0),
+                        y: Math.min(yesBottom + gap, containerRect.height - btnRect.height)
+                    });
+                }
             }, []);
 
             const translations = {
@@ -346,7 +367,7 @@
                                     style={{
                                         position: 'relative',
                                         width: '100%',
-                                        height: '180px'
+                                        height: '200px'
                                     }}
                                 >
                                     <button
@@ -354,7 +375,7 @@
                                         onClick={() => setCurrentPage(1)}
                                         style={{
                                             position: 'absolute',
-                                            left: '38%',
+                                            left: '33%',
                                             top: '50%',
                                             transform: `translate(-50%, -50%) scale(${yesScale})`,
                                             transformOrigin: 'center',
